@@ -35,6 +35,8 @@ RUN set -ex \
         libffi-dev \
         libpq-dev \
         git \
+        libblas-dev \
+        liblapack-dev \   
     ' \
     && apt-get update -yqq \
     && apt-get upgrade -yqq \
@@ -50,17 +52,27 @@ RUN set -ex \
         rsync \
         netcat \
         locales \
+        cron \
+        coreutils \
+        jq \
+        iproute \
+        sudo \  
+        openssh-client \
     && sed -i 's/^# en_US.UTF-8 UTF-8$/en_US.UTF-8 UTF-8/g' /etc/locale.gen \
     && locale-gen \
     && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
     && useradd -ms /bin/bash -d ${AIRFLOW_HOME} airflow \
+    && echo "airflow ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers \
     && pip install -U pip setuptools wheel \
+    && pip install Cython \
     && pip install pytz \
     && pip install pyOpenSSL \
     && pip install ndg-httpsclient \
+    && pip install awscli \
     && pip install pyasn1 \
-    && pip install apache-airflow[crypto,celery,postgres,hive,jdbc,mysql,ssh${AIRFLOW_DEPS:+,}${AIRFLOW_DEPS}]==${AIRFLOW_VERSION} \
-    && pip install 'celery[redis]>=4.1.1,<4.2.0' \
+    && pip install paramiko \ 
+    && pip install apache-airflow[crypto,celery,password,postgres,s3,hive,jdbc,ssh${AIRFLOW_DEPS:+,}${AIRFLOW_DEPS}]==${AIRFLOW_VERSION} \
+    && pip install 'celery[redis]==4.1.1' \
     && if [ -n "${PYTHON_DEPS}" ]; then pip install ${PYTHON_DEPS}; fi \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get autoremove -yqq --purge \
@@ -73,8 +85,13 @@ RUN set -ex \
         /usr/share/doc \
         /usr/share/doc-base
 
+COPY script/create-user.py /create-user.py
 COPY script/entrypoint.sh /entrypoint.sh
 COPY config/airflow.cfg ${AIRFLOW_HOME}/airflow.cfg
+COPY config/__init__.py ${AIRFLOW_HOME}/__init__.py
+COPY config/airflow_local_settings.py ${AIRFLOW_HOME}/airflow_local_settings.py
+
+VOLUME ${AIRFLOW_HOME}/dags
 
 RUN chown -R airflow: ${AIRFLOW_HOME}
 
@@ -83,4 +100,3 @@ EXPOSE 8080 5555 8793
 USER airflow
 WORKDIR ${AIRFLOW_HOME}
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["webserver"] # set default arg for entrypoint
