@@ -9,6 +9,10 @@ fi
 
 export PATH=$PATH:/usr/local/bin/:/usr/local/airflow
 
+hostname=`hostname`
+ipaddr=`ip a | grep inet | grep eth0 | awk '{print $2}' | cut -f 1 -d '/'`
+echo "$ipaddr $hostname" | sudo tee --append /etc/hosts 
+
 /usr/local/bin/aws configure set default.region ap-southeast-2 --debug
 
 # Get the required parameters from AWS Parameter Store for RDS and Elasticache backends

@@ -72,6 +72,7 @@ RUN set -ex \
     && pip install pyasn1 \
     && pip install paramiko \ 
     && pip install apache-airflow[crypto,celery,password,postgres,s3,hive,jdbc,ssh${AIRFLOW_DEPS:+,}${AIRFLOW_DEPS}]==${AIRFLOW_VERSION} \
+    && pip install redis==2.10.6 \
     && pip install 'celery[redis]==4.1.1' \
     && if [ -n "${PYTHON_DEPS}" ]; then pip install ${PYTHON_DEPS}; fi \
     && apt-get purge --auto-remove -yqq $buildDeps \
@@ -88,14 +89,16 @@ RUN set -ex \
 COPY script/create-user.py /create-user.py
 COPY script/entrypoint.sh /entrypoint.sh
 COPY config/airflow.cfg ${AIRFLOW_HOME}/airflow.cfg
-COPY config/__init__.py ${AIRFLOW_HOME}/__init__.py
-COPY config/airflow_local_settings.py ${AIRFLOW_HOME}/airflow_local_settings.py
+COPY config/__init__.py ${AIRFLOW_HOME}/plugins/__init__.py
+COPY config/airflow_local_settings.py ${AIRFLOW_HOME}/plugins/airflow_local_settings.py
 
 VOLUME ${AIRFLOW_HOME}/dags
 
 RUN chown -R airflow: ${AIRFLOW_HOME}
 
 EXPOSE 8080 5555 8793
+
+ENV PYTHONPATH ${AIRFLOW_HOME}/plugins
 
 USER airflow
 WORKDIR ${AIRFLOW_HOME}

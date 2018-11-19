@@ -1,0 +1,102 @@
+{
+    "family": "airflow-demo-worker", 
+    "taskRoleArn": "", 
+    "executionRoleArn": "", 
+    "networkMode": "awsvpc", 
+    "containerDefinitions": [
+        {
+            "name": "worker", 
+            "image": "", 
+            "cpu": 0, 
+            "memory": 8192, 
+            "memoryReservation": 4096, 
+            "portMappings": [
+                {
+                    "containerPort": 8793, 
+                    "hostPort": 8793, 
+                    "protocol": "tcp"
+                }
+            ], 
+            "essential": true, 
+            "command": [
+                "worker"
+            ], 
+            "environment": [
+                {
+                    "name": "EXECUTOR", 
+                    "value": "Celery"
+                }
+            ],
+            "mountPoints": [
+                {
+                    "sourceVolume": "dags", 
+                    "containerPath": "/usr/local/airflow/dags", 
+                    "readOnly": true
+                }
+            ], 
+            "logConfiguration": {
+                "logDriver": "awslogs", 
+                "options": {
+                    "awslogs-group": "/ecs/airflow-demo-worker",
+                    "awslogs-region": "ap-southeast-2",
+                    "awslogs-stream-prefix": "ecs"                
+                }
+            }
+        },
+        {
+            "name": "git-sync", 
+            "image": "", 
+            "cpu": 0, 
+            "memory": 256, 
+            "memoryReservation": 128, 
+            "essential": true, 
+            "environment": [
+                {
+                    "name": "GIT_SYNC_BRANCH",
+                    "value": "testing"
+                },
+                {
+                    "name": "GIT_SYNC_DEST",
+                    "value": "/git"
+                },
+                {
+                    "name": "GIT_SYNC_REPO",
+                    "value": "https://github.com/jeevanullas/airflow-sample-dags.git"
+                },
+                {
+                    "name": "GIT_SYNC_REV",
+                    "value": "FETCH_HEAD"
+                },
+                {
+                    "name": "GIT_SYNC_WAIT",
+                    "value": "10"
+                }
+            ], 
+            "mountPoints": [
+                {
+                    "sourceVolume": "dags", 
+                    "containerPath": "/git", 
+                    "readOnly": false
+                }
+            ], 
+            "logConfiguration": {
+                "logDriver": "awslogs", 
+                "options": {
+                    "awslogs-group": "/ecs/airflow-demo-worker",
+                    "awslogs-region": "ap-southeast-2",
+                    "awslogs-stream-prefix": "ecs"                
+                }
+            }
+        }
+    ], 
+    "volumes": [
+        {
+          "name": "dags"
+        }
+    ],
+    "requiresCompatibilities": [
+        "FARGATE"
+    ], 
+    "cpu": "4096", 
+    "memory": "8192"
+}
